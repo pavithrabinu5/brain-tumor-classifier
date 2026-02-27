@@ -6,3 +6,4 @@ data/
 *.egg-info/
 .env
 kaggle.json
+outputs/checkpoints/
