@@ -1,0 +1,35 @@
+# Core Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+timm>=0.9.0               # Pretrained models (EfficientNet, ViT, ResNet)
+
+# Data & Processing
+numpy>=1.24.0
+pandas>=2.0.0
+Pillow>=9.5.0
+opencv-python>=4.7.0
+scikit-learn>=1.3.0
+albumentations>=1.3.0     # Advanced image augmentations
+
+# Explainability
+grad-cam>=1.4.8           # Grad-CAM visualizations
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Experiment Tracking
+wandb>=0.15.0             # Weights & Biases
+# mlflow>=2.5.0           # Alternative: MLflow
+
+# App / Deployment
+gradio>=3.40.0
+streamlit>=1.25.0
+
+# Utilities
+tqdm>=4.65.0
+PyYAML>=6.0
+python-dotenv>=1.0.0
+rich>=13.0.0              # Pretty terminal output
+
+# Notebooks
+jupyter>=1.0.0
+ipywidgets>=8.0.0

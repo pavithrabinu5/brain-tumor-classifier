@@ -1,0 +1,99 @@
+# ============================================================
+# Tumor Classifier — Main Configuration
+# ============================================================
+
+project:
+  name: "AI Tumor Classifier"
+  version: "1.0.0"
+  seed: 42
+
+# ── Dataset ──────────────────────────────────────────────────
+data:
+  dataset: "brain_tumor"          # brain_tumor | skin_lesion | lung_nodule
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  augmented_dir: "data/augmented"
+
+  classes:                        # Update based on your dataset
+    - "glioma"
+    - "meningioma"
+    - "pituitary"
+    - "notumor"
+
+  image_size: 224                 # Input size (224 for most pretrained models)
+  channels: 3
+  train_split: 0.70
+  val_split:   0.15
+  test_split:  0.15
+
+# ── Model ────────────────────────────────────────────────────
+model:
+  backbone: "efficientnet_b3"     # Try: resnet50, vit_base_patch16_224, densenet121
+  pretrained: true
+  dropout: 0.3
+  num_classes: 4                  # Must match len(data.classes)
+
+# ── Training ─────────────────────────────────────────────────
+training:
+  epochs: 50
+  batch_size: 32
+  num_workers: 4
+  mixed_precision: true           # fp16 training (faster on GPU)
+
+  optimizer: "adamw"
+  learning_rate: 0.0001
+  weight_decay: 0.01
+
+  scheduler: "cosine"             # cosine | step | plateau
+  warmup_epochs: 5
+
+  early_stopping:
+    patience: 10
+    monitor: "val_loss"
+
+  class_weights: true             # Handle class imbalance automatically
+
+# ── Augmentation ─────────────────────────────────────────────
+augmentation:
+  train:
+    horizontal_flip: 0.5
+    vertical_flip: 0.3
+    rotation_limit: 30
+    brightness_contrast: 0.3
+    gaussian_noise: 0.2
+    elastic_transform: 0.2       # Great for medical images
+    normalize: true
+
+  val_test:
+    normalize: true
+
+# ── Evaluation ───────────────────────────────────────────────
+evaluation:
+  metrics:
+    - accuracy
+    - auc_roc
+    - f1_score
+    - precision
+    - recall
+  save_confusion_matrix: true
+  save_roc_curves: true
+
+# ── Explainability ───────────────────────────────────────────
+explainability:
+  method: "gradcam"               # gradcam | gradcam++ | scorecam
+  target_layer: "auto"            # auto-detects last conv layer
+  save_dir: "outputs/grad_cam"
+  num_samples: 20                 # How many images to visualize
+
+# ── Output ───────────────────────────────────────────────────
+output:
+  checkpoint_dir: "outputs/checkpoints"
+  log_dir: "outputs/logs"
+  results_dir: "outputs/results"
+  save_best_only: true
+
+# ── Weights & Biases (optional) ──────────────────────────────
+wandb:
+  enabled: false                  # Set true when you have an account
+  project: "tumor-classifier"
+  entity: "your-username"

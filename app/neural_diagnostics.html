@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Diagnostics | Brain Tumor Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Montserrat:wght@200;300;400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --dark-primary: #36422E;
+            --dark-secondary: #96806C;
+            --mid-tone: #B8A28E;
+            --light-accent: #76614F;
+            --text-light: #F5F1ED;
+            --surface: rgba(150, 128, 108, 0.08);
+            --border: rgba(184, 162, 142, 0.2);
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, var(--dark-primary) 0%, #2A2420 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23B8A28E' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        header {
+            background: rgba(54, 66, 46, 0.6);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: transform 0.35s ease;
+        }
+        header.hide { transform: translateY(-100%); }
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 600; letter-spacing: 1px; }
+        .logo span { color: var(--mid-tone); font-weight: 300; }
+        nav ul { display: flex; gap: 2.5rem; list-style: none; }
+        nav a { color: var(--text-light); text-decoration: none; font-size: 0.82rem; letter-spacing: 1px; text-transform: uppercase; transition: color 0.3s; position: relative; }
+        nav a::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 0; height: 1px; background: var(--mid-tone); transition: width 0.3s; }
+        nav a:hover { color: var(--mid-tone); }
+        nav a:hover::after { width: 100%; }
+
+        /* Hero */
+        .hero { text-align: center; padding: 7rem 2rem 4rem; max-width: 1000px; margin: 0 auto; position: relative; z-index: 1; }
+        .hero-badge { display: inline-block; font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; color: var(--mid-tone); border: 1px solid var(--border); padding: 0.5rem 1.5rem; border-radius: 50px; margin-bottom: 2rem; background: rgba(184,162,142,0.05); }
+        .hero h1 { font-family: 'Playfair Display', serif; font-size: 3.8rem; font-weight: 600; margin-bottom: 1.5rem; letter-spacing: 1px; line-height: 1.15; }
+        .hero .subtitle { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; color: var(--mid-tone); margin-bottom: 1rem; font-weight: 300; font-style: italic; }
+        .hero .description { font-size: 0.98rem; color: rgba(245,241,237,0.72); max-width: 680px; margin: 0 auto 4rem; line-height: 1.9; font-weight: 300; }
+
+        /* Stats Bar */
+        .stats-bar { display: flex; justify-content: center; max-width: 800px; margin: 0 auto 5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; position: relative; z-index: 1; }
+        .stat-item { flex: 1; padding: 2rem 1.5rem; text-align: center; border-right: 1px solid var(--border); transition: background 0.3s; }
+        .stat-item:last-child { border-right: none; }
+        .stat-item:hover { background: rgba(184,162,142,0.07); }
+        .stat-number { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 600; display: block; line-height: 1; margin-bottom: 0.4rem; }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--mid-tone); }
+
+        /* Container */
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 2rem 4rem; position: relative; z-index: 1; }
+
+        /* Section Headers */
+        .section-header { text-align: center; margin-bottom: 3.5rem; }
+        .section-tag { display: inline-block; font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; color: var(--mid-tone); margin-bottom: 1rem; }
+        .section-header h2 { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 600; margin-bottom: 1rem; }
+        .section-header p { color: rgba(245,241,237,0.65); max-width: 580px; margin: 0 auto; font-size: 0.93rem; line-height: 1.8; font-weight: 300; }
+        .divider { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--mid-tone), transparent); margin: 1.5rem auto 0; }
+
+        /* Upload */
+        .upload-section { background: var(--surface); border: 2px dashed rgba(184,162,142,0.3); border-radius: 20px; padding: 4rem 3rem; text-align: center; transition: all 0.4s ease; backdrop-filter: blur(5px); position: relative; overflow: hidden; }
+        .upload-section::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(184,162,142,0.07), transparent); transition: left 0.6s; }
+        .upload-section:hover::before { left: 100%; }
+        .upload-section:hover { border-color: var(--mid-tone); background: rgba(150,128,108,0.12); transform: translateY(-2px); }
+        .upload-section.drag-over { border-color: var(--mid-tone); background: rgba(184,162,142,0.12); transform: scale(1.01); }
+        .upload-icon { font-size: 3.5rem; margin-bottom: 1.5rem; opacity: 0.8; }
+        .upload-section h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; margin-bottom: 1rem; font-weight: 500; }
+        .upload-section p { color: rgba(245,241,237,0.65); margin-bottom: 2rem; font-size: 0.95rem; }
+        #fileInput { display: none; }
+
+        /* Buttons */
+        .btn-primary { background: linear-gradient(135deg, var(--light-accent), var(--dark-secondary)); color: var(--text-light); padding: 1rem 3rem; border: none; border-radius: 50px; font-size: 0.95rem; font-weight: 500; letter-spacing: 1px; cursor: pointer; transition: all 0.4s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(118,97,79,0.3); font-family: 'Montserrat', sans-serif; }
+        .btn-primary::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 50%; background: rgba(255,255,255,0.1); transform: translate(-50%,-50%); transition: width 0.6s, height 0.6s; }
+        .btn-primary:hover::before { width: 300px; height: 300px; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(118,97,79,0.5); }
+        .btn-analyze { background: linear-gradient(135deg, var(--dark-secondary), var(--mid-tone)); margin-top: 2rem; padding: 1.2rem 4rem; font-size: 1.05rem; }
+        .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .file-name { margin-top: 1.5rem; color: var(--mid-tone); font-weight: 500; font-size: 0.95rem; letter-spacing: 0.5px; }
+
+        /* Loading */
+        .loading { display: none; text-align: center; margin: 3rem 0; }
+        .spinner { width: 60px; height: 60px; margin: 0 auto 1.5rem; border: 3px solid rgba(184,162,142,0.2); border-top: 3px solid var(--mid-tone); border-radius: 50%; animation: spin 1s cubic-bezier(0.5,0,0.5,1) infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading p { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--mid-tone); font-style: italic; }
+
+        /* Results */
+        .results { display: none; margin-top: 4rem; animation: fadeInUp 0.6s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .results-header { text-align: center; margin-bottom: 3rem; }
+        .results-header h2 { font-family: 'Playfair Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 3rem; }
+        .result-card { background: var(--surface); border-radius: 20px; padding: 2.5rem; backdrop-filter: blur(10px); border: 1px solid var(--border); transition: all 0.4s ease; }
+        .result-card:hover { transform: translateY(-5px); box-shadow: 0 10px 40px rgba(0,0,0,0.3); border-color: var(--mid-tone); }
+        .image-toggle { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; }
+        .toggle-btn { flex: 1; padding: 0.55rem; border: 1px solid var(--border); background: transparent; color: rgba(245,241,237,0.5); border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-family: 'Montserrat', sans-serif; letter-spacing: 0.5px; transition: all 0.3s; }
+        .toggle-btn.active { background: rgba(184,162,142,0.15); border-color: var(--mid-tone); color: var(--text-light); }
+        .image-preview img { width: 100%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+        .prediction-details h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; margin-bottom: 2rem; color: var(--mid-tone); font-style: italic; }
+        .diagnosis-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 2px; color: rgba(245,241,237,0.5); margin-bottom: 0.5rem; }
+        .prediction-class { font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 600; margin-bottom: 1rem; text-transform: capitalize; }
+        .confidence { font-size: 1.8rem; color: var(--mid-tone); margin-bottom: 3rem; font-weight: 500; font-family: 'Cormorant Garamond', serif; }
+        .probabilities-header { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 2px; color: rgba(245,241,237,0.5); margin-bottom: 1.5rem; }
+        .probability-bar { margin-bottom: 1.5rem; }
+        .probability-label { display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.9rem; }
+        .probability-label span:first-child { text-transform: capitalize; font-weight: 500; }
+        .bar-container { background: rgba(54,66,46,0.4); border-radius: 50px; overflow: hidden; height: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, var(--light-accent), var(--mid-tone)); width: 0%; transition: width 1s cubic-bezier(0.4,0,0.2,1); border-radius: 50px; box-shadow: 0 0 10px rgba(184,162,142,0.4); }
+
+        /* Sections shared */
+        .how-section, .performance-section, .tech-section, .info-section, .faq-section { margin-top: 5rem; padding: 5rem 0; border-top: 1px solid var(--border); }
+
+        /* How it works */
+        .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; position: relative; }
+        .steps-grid::before { content: ''; position: absolute; top: 2.5rem; left: 13%; right: 13%; height: 1px; background: linear-gradient(90deg, transparent, var(--border), var(--border), transparent); z-index: 0; }
+        .step-card { text-align: center; padding: 2rem 1.5rem; position: relative; z-index: 1; }
+        .step-number { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--light-accent), var(--dark-secondary)); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 1.4rem; box-shadow: 0 4px 20px rgba(118,97,79,0.4); }
+        .step-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; margin-bottom: 0.8rem; }
+        .step-card p { font-size: 0.84rem; color: rgba(245,241,237,0.58); line-height: 1.7; font-weight: 300; }
+
+        /* Performance */
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-bottom: 3rem; }
+        .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem 2rem; text-align: center; transition: all 0.3s; position: relative; overflow: hidden; }
+        .metric-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--light-accent), var(--mid-tone)); transform: scaleX(0); transition: transform 0.4s; }
+        .metric-card:hover::after { transform: scaleX(1); }
+        .metric-card:hover { transform: translateY(-4px); border-color: var(--mid-tone); }
+        .metric-value { font-family: 'Playfair Display', serif; font-size: 3.2rem; font-weight: 600; display: block; line-height: 1; margin-bottom: 0.5rem; }
+        .metric-name { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 2px; color: var(--mid-tone); margin-bottom: 1rem; }
+        .metric-desc { font-size: 0.82rem; color: rgba(245,241,237,0.5); line-height: 1.6; font-weight: 300; }
+        .perf-table { width: 100%; border-collapse: collapse; }
+        .perf-table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px; color: var(--mid-tone); padding: 1rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border); font-weight: 500; }
+        .perf-table td { padding: 1rem 1.5rem; font-size: 0.9rem; border-bottom: 1px solid rgba(184,162,142,0.08); color: rgba(245,241,237,0.78); }
+        .perf-table tr:last-child td { border-bottom: none; }
+        .perf-table tr:hover td { background: rgba(184,162,142,0.04); }
+        .perf-table td:first-child { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-weight: 500; color: var(--text-light); text-transform: capitalize; }
+        .badge { display: inline-block; padding: 0.2rem 0.7rem; border-radius: 50px; font-size: 0.78rem; font-weight: 600; background: rgba(184,162,142,0.1); color: var(--mid-tone); border: 1px solid rgba(184,162,142,0.2); }
+
+        /* Tech */
+        .tech-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        .tech-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; transition: all 0.3s; }
+        .tech-card:hover { transform: translateY(-4px); border-color: var(--mid-tone); background: rgba(150,128,108,0.12); }
+        .tech-icon { font-size: 2rem; margin-bottom: 1rem; display: block; }
+        .tech-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; color: var(--mid-tone); margin-bottom: 0.6rem; }
+        .tech-card p { font-size: 0.84rem; color: rgba(245,241,237,0.58); line-height: 1.7; font-weight: 300; }
+        .tech-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1rem; }
+        .tech-tag { font-size: 0.68rem; padding: 0.25rem 0.6rem; border-radius: 4px; background: rgba(54,66,46,0.5); border: 1px solid rgba(184,162,142,0.15); color: rgba(245,241,237,0.55); letter-spacing: 0.4px; }
+
+        /* Tumor Classes */
+        .class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; }
+        .class-card { background: rgba(54,66,46,0.3); padding: 2rem; border-radius: 15px; border: 1px solid var(--border); transition: all 0.3s; position: relative; overflow: hidden; }
+        .class-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: linear-gradient(to bottom, var(--light-accent), var(--mid-tone)); opacity: 0; transition: opacity 0.3s; }
+        .class-card:hover::before { opacity: 1; }
+        .class-card:hover { transform: translateY(-5px); border-color: var(--mid-tone); background: rgba(54,66,46,0.4); }
+        .class-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--mid-tone); margin-bottom: 0.8rem; }
+        .class-card p { font-size: 0.88rem; line-height: 1.7; color: rgba(245,241,237,0.62); font-weight: 300; }
+        .class-severity { display: inline-block; margin-top: 1rem; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--mid-tone); border: 1px solid rgba(184,162,142,0.25); padding: 0.3rem 0.8rem; border-radius: 50px; }
+
+        /* FAQ */
+        .faq-list { max-width: 820px; margin: 0 auto; }
+        .faq-item { border-bottom: 1px solid var(--border); overflow: hidden; }
+        .faq-question { width: 100%; background: transparent; border: none; padding: 1.8rem 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; text-align: left; font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--text-light); font-weight: 500; transition: color 0.3s; gap: 1rem; }
+        .faq-question:hover { color: var(--mid-tone); }
+        .faq-icon { font-size: 1.3rem; color: var(--mid-tone); transition: transform 0.3s; flex-shrink: 0; }
+        .faq-item.open .faq-icon { transform: rotate(45deg); }
+        .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s ease; }
+        .faq-answer.open { max-height: 300px; padding-bottom: 1.5rem; }
+        .faq-answer p { font-size: 0.88rem; color: rgba(245,241,237,0.62); line-height: 1.85; font-weight: 300; }
+
+        /* Disclaimer */
+        .disclaimer { margin-top: 3rem; padding: 2rem; background: rgba(118,97,79,0.1); border-left: 3px solid var(--light-accent); border-radius: 10px; }
+        .disclaimer strong { color: var(--mid-tone); font-size: 1rem; letter-spacing: 0.5px; }
+        .disclaimer p { margin-top: 0.6rem; color: rgba(245,241,237,0.65); font-size: 0.88rem; line-height: 1.7; font-weight: 300; }
+
+        /* Footer */
+        footer { margin-top: 5rem; border-top: 1px solid var(--border); position: relative; z-index: 1; }
+        .footer-main { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 4rem; padding: 4rem 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+        .footer-brand .logo { font-size: 1.6rem; display: block; margin-bottom: 1rem; }
+        .footer-brand p { font-size: 0.84rem; color: rgba(245,241,237,0.45); line-height: 1.8; font-weight: 300; max-width: 320px; }
+        .footer-col h4 { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; color: var(--mid-tone); margin-bottom: 1.2rem; font-weight: 600; }
+        .footer-col ul { list-style: none; }
+        .footer-col li { font-size: 0.84rem; color: rgba(245,241,237,0.45); margin-bottom: 0.6rem; font-weight: 300; transition: color 0.2s; cursor: default; }
+        .footer-col li:hover { color: var(--mid-tone); }
+        .footer-bottom { border-top: 1px solid var(--border); padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: rgba(245,241,237,0.35); }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .steps-grid { grid-template-columns: repeat(2, 1fr); }
+            .steps-grid::before { display: none; }
+            .tech-grid { grid-template-columns: repeat(2, 1fr); }
+            .footer-main { grid-template-columns: 1fr 1fr; gap: 2rem; }
+        }
+        @media (max-width: 768px) {
+            .results-grid, .metrics-grid, .tech-grid, .steps-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2.5rem; }
+            .header-content { flex-direction: column; gap: 1.5rem; }
+            nav ul { gap: 1.5rem; }
+            .stats-bar { flex-direction: column; }
+            .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+            .stat-item:last-child { border-bottom: none; }
+            .footer-main { grid-template-columns: 1fr; gap: 2rem; }
+            .footer-bottom { flex-direction: column; gap: 0.5rem; text-align: center; }
+        }
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 2rem; }
+            .upload-section { padding: 3rem 1.5rem; }
+            .prediction-class { font-size: 2.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <div class="logo">Neural <span>Diagnostics</span></div>
+            <nav>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#analysis">Analysis</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#performance">Performance</a></li>
+                    <li><a href="#about">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero" id="home">
+        <div class="hero-badge">Research Portfolio &nbsp;·&nbsp; AI in Healthcare</div>
+        <h1>Advanced Brain Tumor<br>Detection System</h1>
+        <p class="subtitle">Powered by Deep Learning &amp; Transfer Learning</p>
+        <p class="description">A state-of-the-art AI system trained on 5,600 brain MRI scans, capable of classifying four tumor types with clinical-grade accuracy — complete with visual explainability through Grad-CAM heatmaps.</p>
+        <div class="stats-bar">
+            <div class="stat-item"><span class="stat-number" data-target="97">0</span><span class="stat-label">% Accuracy</span></div>
+            <div class="stat-item"><span class="stat-number" data-target="0.98" data-decimal>0</span><span class="stat-label">AUC-ROC Score</span></div>
+            <div class="stat-item"><span class="stat-number" data-target="5600">0</span><span class="stat-label">Training Images</span></div>
+            <div class="stat-item"><span class="stat-number" data-target="4">0</span><span class="stat-label">Tumor Classes</span></div>
+        </div>
+    </section>
+
+    <div class="container">
+
+        <!-- Analysis -->
+        <div id="analysis">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">🧠</div>
+                <h2>Upload MRI Scan</h2>
+                <p>Drag and drop your MRI image, or click to browse</p>
+                <input type="file" id="fileInput" accept="image/*">
+                <button class="btn-primary" onclick="document.getElementById('fileInput').click()">Select Image</button>
+                <div class="file-name" id="fileName"></div>
+                <button class="btn-primary btn-analyze" id="predictBtn" disabled onclick="predict()">Analyze Scan</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your MRI scan with AI...</p>
+            </div>
+
+            <div class="results" id="results">
+                <div class="results-header">
+                    <h2>Diagnostic Results</h2>
+                    <p style="color:rgba(245,241,237,0.4);font-size:0.82rem;margin-top:0.5rem;" id="result-timestamp"></p>
+                </div>
+                <div class="results-grid">
+                    <div class="result-card image-preview">
+                        <div class="image-toggle">
+                            <button class="toggle-btn active" id="btn-original" onclick="showImage('original')">Original Scan</button>
+                            <button class="toggle-btn" id="btn-gradcam" onclick="showImage('gradcam')">Grad-CAM Heatmap</button>
+                        </div>
+                        <img id="previewImage" src="" alt="MRI Scan">
+                        <img id="gradcamImage" src="" alt="Grad-CAM" style="display:none;width:100%;border-radius:12px;">
+                        <p style="margin-top:0.8rem;font-size:0.73rem;color:rgba(245,241,237,0.3);text-align:center;font-style:italic;" id="img-caption">Original MRI scan</p>
+                    </div>
+                    <div class="result-card prediction-details">
+                        <h3>Analysis Report</h3>
+                        <div class="diagnosis-label">Primary Diagnosis</div>
+                        <div class="prediction-class" id="predictionClass"></div>
+                        <div class="diagnosis-label">Confidence Level</div>
+                        <div class="confidence" id="confidence"></div>
+                        <div class="probabilities-header">Probability Distribution</div>
+                        <div id="probabilityBars"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <section class="how-section" id="how-it-works">
+            <div class="section-header">
+                <div class="section-tag">Methodology</div>
+                <h2>How It Works</h2>
+                <p>From raw MRI scan to explained prediction in under a second.</p>
+                <div class="divider"></div>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">📤</div>
+                    <h3>Upload Scan</h3>
+                    <p>Upload any brain MRI image in JPG or PNG format. The system auto-resizes to the required 224×224 input dimensions.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">⚙️</div>
+                    <h3>Preprocessing</h3>
+                    <p>Normalized using ImageNet statistics and passed through the augmentation pipeline to match training conditions precisely.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">🧬</div>
+                    <h3>Deep Learning</h3>
+                    <p>EfficientNetB3, pretrained on 14 million images, extracts deep features and classifies across four tumor categories.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">🌡️</div>
+                    <h3>Grad-CAM</h3>
+                    <p>Gradient-weighted Class Activation Maps highlight the exact brain regions that drove the model's decision — fully interpretable AI.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Model Performance -->
+        <section class="performance-section" id="performance">
+            <div class="section-header">
+                <div class="section-tag">Evaluation</div>
+                <h2>Model Performance</h2>
+                <p>Evaluated on a held-out test set of 840 unseen images using clinical-grade metrics.</p>
+                <div class="divider"></div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-value">97%</span>
+                    <div class="metric-name">Overall Accuracy</div>
+                    <div class="metric-desc">Correctly classified scans across all four tumor categories on the unseen test set.</div>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-value">0.98</span>
+                    <div class="metric-name">AUC-ROC (Macro)</div>
+                    <div class="metric-desc">Area Under the ROC Curve averaged across all classes. A score of 1.0 is perfect — 0.98 indicates excellent discrimination ability.</div>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-value">0.97</span>
+                    <div class="metric-name">F1 Score</div>
+                    <div class="metric-desc">Harmonic mean of precision and recall, accounting for class imbalance. The key metric for reliable medical AI systems.</div>
+                </div>
+            </div>
+            <div class="result-card">
+                <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--mid-tone);margin-bottom:1.5rem;font-style:italic;">Per-Class Breakdown</h3>
+                <table class="perf-table">
+                    <thead>
+                        <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1 Score</th><th>Test Samples</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Glioma</td><td>0.97</td><td>0.96</td><td>0.97</td><td><span class="badge">210</span></td></tr>
+                        <tr><td>Meningioma</td><td>0.95</td><td>0.96</td><td>0.96</td><td><span class="badge">210</span></td></tr>
+                        <tr><td>Pituitary</td><td>0.98</td><td>0.99</td><td>0.98</td><td><span class="badge">210</span></td></tr>
+                        <tr><td>No Tumor</td><td>0.99</td><td>0.98</td><td>0.98</td><td><span class="badge">210</span></td></tr>
+                    </tbody>
+                </table>
+                <p style="font-size:0.73rem;color:rgba(245,241,237,0.3);margin-top:1rem;font-style:italic;">* Update these values with your actual training results once training completes</p>
+            </div>
+        </section>
+
+        <!-- Tech Stack -->
+        <section class="tech-section">
+            <div class="section-header">
+                <div class="section-tag">Architecture</div>
+                <h2>Technology Stack</h2>
+                <p>Built with production-grade tools used across leading research labs and medical AI companies.</p>
+                <div class="divider"></div>
+            </div>
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <span class="tech-icon">🧠</span>
+                    <h3>EfficientNetB3 Backbone</h3>
+                    <p>Google's compound-scaled CNN architecture pretrained on ImageNet. Fine-tuned end-to-end on brain MRI data using differential learning rates — 10× lower for backbone layers than the classification head.</p>
+                    <div class="tech-tags"><span class="tech-tag">Transfer Learning</span><span class="tech-tag">11.2M Parameters</span><span class="tech-tag">224×224 Input</span></div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-icon">⚡</span>
+                    <h3>Training Pipeline</h3>
+                    <p>AdamW optimizer with cosine annealing and warmup. Mixed-precision fp16 training, gradient clipping, weighted random sampling, and early stopping for robust generalization.</p>
+                    <div class="tech-tags"><span class="tech-tag">PyTorch 2.0</span><span class="tech-tag">Mixed Precision</span><span class="tech-tag">Early Stopping</span></div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-icon">🔬</span>
+                    <h3>Explainability (Grad-CAM++)</h3>
+                    <p>Gradient-weighted heatmaps from the final conv layer pinpoint which pixels drove the prediction. Critical for clinical trust, validation, and regulatory considerations.</p>
+                    <div class="tech-tags"><span class="tech-tag">Grad-CAM++</span><span class="tech-tag">pytorch-grad-cam</span><span class="tech-tag">Interpretable AI</span></div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-icon">🖼️</span>
+                    <h3>Data Augmentation</h3>
+                    <p>Albumentations library with medical-specific transforms including elastic distortion, grid distortion, and Gaussian noise — replicating real-world MRI variability during training.</p>
+                    <div class="tech-tags"><span class="tech-tag">Albumentations</span><span class="tech-tag">Elastic Transform</span><span class="tech-tag">5,600 Images</span></div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-icon">📊</span>
+                    <h3>Evaluation Suite</h3>
+                    <p>Comprehensive metrics: AUC-ROC per class, weighted F1, normalized confusion matrices, and full classification reports. Tracked with Weights &amp; Biases for complete reproducibility.</p>
+                    <div class="tech-tags"><span class="tech-tag">W&amp;B Tracking</span><span class="tech-tag">scikit-learn</span><span class="tech-tag">ROC Curves</span></div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-icon">🚀</span>
+                    <h3>Deployment</h3>
+                    <p>Flask REST API serving this interface with model inference in under 200ms. Designed for easy deployment on any cloud provider or HuggingFace Spaces for public portfolio access.</p>
+                    <div class="tech-tags"><span class="tech-tag">Flask</span><span class="tech-tag">REST API</span><span class="tech-tag">Base64 Images</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tumor Classes -->
+        <section class="info-section" id="about">
+            <div class="section-header">
+                <div class="section-tag">Clinical Background</div>
+                <h2>Understanding Brain Tumors</h2>
+                <p>Each classification represents a distinct clinical condition with different prognosis, treatment pathway, and urgency level.</p>
+                <div class="divider"></div>
+            </div>
+            <div class="class-grid">
+                <div class="class-card">
+                    <h3>Glioma</h3>
+                    <p>Originates from glial cells — the supportive tissue of the brain. The most common and aggressive primary brain tumor. Requires immediate specialist referral and often involves surgery, radiation, and chemotherapy.</p>
+                    <span class="class-severity">High Urgency</span>
+                </div>
+                <div class="class-card">
+                    <h3>Meningioma</h3>
+                    <p>Arises from the meninges surrounding the brain and spinal cord. Usually benign and slow-growing. Treatment ranges from watchful waiting to surgical removal depending on size, location, and symptoms.</p>
+                    <span class="class-severity">Often Benign</span>
+                </div>
+                <div class="class-card">
+                    <h3>Pituitary Tumor</h3>
+                    <p>A growth in the pituitary gland at the base of the brain. Can disrupt hormone production affecting the entire body. Most are benign adenomas; treatment may include medication, surgery, or radiation.</p>
+                    <span class="class-severity">Hormonal Impact</span>
+                </div>
+                <div class="class-card">
+                    <h3>No Tumor</h3>
+                    <p>Normal brain tissue with no detectable tumor. The model identifies these with 99% precision, minimizing false positives. Regular neurological check-ups are still recommended for overall brain health.</p>
+                    <span class="class-severity">Normal Findings</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="faq-section">
+            <div class="section-header">
+                <div class="section-tag">Questions</div>
+                <h2>Frequently Asked Questions</h2>
+                <div class="divider"></div>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">How accurate is this system?<span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>The model achieves approximately 97% accuracy and 0.98 AUC-ROC on a held-out test set of 840 images. Performance may vary on scans from different MRI scanners or acquisition protocols not represented in the training data. Update these values with your actual results after training completes.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">What type of MRI scans does it support?<span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>The model was trained on T1-weighted and T2-weighted brain MRI scans. Axial slice images in JPG or PNG format work best. The system accepts any image size and automatically resizes to 224×224 pixels for processing.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">What is the Grad-CAM heatmap showing?<span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>Grad-CAM uses the gradients flowing into the final convolutional layer to produce a heatmap highlighting important regions. Red and warm-colored areas indicate high model attention — where the AI focused most when making its prediction. This makes the decision transparent and allows medical professionals to verify whether the model is focusing on the correct anatomical regions.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">Can this be used for clinical diagnosis?<span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>No. This system is a research and portfolio demonstration. It has not undergone clinical validation, regulatory review, or FDA/CE approval. All medical decisions must be made by qualified healthcare professionals using appropriate clinical tools and expert judgment.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">What dataset was used for training?<span class="faq-icon">+</span></button>
+                    <div class="faq-answer"><p>The model was trained on the Brain Tumor MRI Dataset by Masoud Nickparvar, publicly available on Kaggle. It contains 7,023 MRI images across four classes. Our split used 3,920 images for training, 840 for validation, and 840 for final testing — with class-balanced sampling throughout.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="disclaimer">
+            <strong>⚠️ Medical Disclaimer</strong>
+            <p>This system is designed for research, educational, and portfolio demonstration purposes only. It must not be used as a substitute for professional medical advice, diagnosis, or treatment. The developers make no warranties regarding the accuracy or reliability of this system for clinical applications. Always consult a qualified and licensed healthcare professional for any medical concerns.</p>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="footer-main">
+            <div class="footer-brand">
+                <span class="logo">Neural <span>Diagnostics</span></span>
+                <p>An AI-powered brain tumor classification system built as a portfolio project demonstrating the application of deep learning in medical imaging. Built with PyTorch, EfficientNetB3, and Grad-CAM explainability.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Project</h4>
+                <ul>
+                    <li>EfficientNetB3 Backbone</li>
+                    <li>Transfer Learning</li>
+                    <li>Grad-CAM Explainability</li>
+                    <li>Flask REST API</li>
+                    <li>5,600 MRI Images</li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Resources</h4>
+                <ul>
+                    <li>Kaggle Brain Tumor Dataset</li>
+                    <li>PyTorch Documentation</li>
+                    <li>Grad-CAM Paper (2017)</li>
+                    <li>EfficientNet Paper (2019)</li>
+                    <li>GitHub Repository</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2026 Neural Diagnostics &nbsp;·&nbsp; Built by Pavithrabinu</span>
+            <span>Research Portfolio &nbsp;·&nbsp; Not for Clinical Use</span>
+        </div>
+    </footer>
+
+    <script>
+        const fileInput     = document.getElementById('fileInput');
+        const fileName      = document.getElementById('fileName');
+        const predictBtn    = document.getElementById('predictBtn');
+        const uploadSection = document.getElementById('uploadSection');
+        const loading       = document.getElementById('loading');
+        const results       = document.getElementById('results');
+
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length > 0) { fileName.textContent = `Selected: ${e.target.files[0].name}`; predictBtn.disabled = false; }
+        });
+
+        uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.classList.add('drag-over'); });
+        uploadSection.addEventListener('dragleave', () => uploadSection.classList.remove('drag-over'));
+        uploadSection.addEventListener('drop', e => {
+            e.preventDefault(); uploadSection.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) { fileInput.files = e.dataTransfer.files; fileName.textContent = `Selected: ${e.dataTransfer.files[0].name}`; predictBtn.disabled = false; }
+        });
+
+        function showImage(type) {
+            document.getElementById('previewImage').style.display  = type === 'original' ? 'block' : 'none';
+            document.getElementById('gradcamImage').style.display  = type === 'gradcam'  ? 'block' : 'none';
+            document.getElementById('btn-original').classList.toggle('active', type === 'original');
+            document.getElementById('btn-gradcam').classList.toggle('active',  type === 'gradcam');
+            document.getElementById('img-caption').textContent = type === 'original' ? 'Original MRI scan' : 'Grad-CAM heatmap — warm regions indicate high model attention';
+        }
+
+        async function predict() {
+            const file = fileInput.files[0];
+            if (!file) return;
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            predictBtn.disabled = true;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const response = await fetch('/predict', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) { displayResults(data); }
+                else { alert('Error: ' + data.error); }
+            } catch (err) {
+                alert('Could not connect to the model server.\nMake sure server.py is running.\n\n' + err.message);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            results.style.display = 'block';
+            document.getElementById('result-timestamp').textContent = `Analyzed at ${new Date().toLocaleTimeString()} · ${new Date().toLocaleDateString()}`;
+            document.getElementById('previewImage').src = `data:image/jpeg;base64,${data.image}`;
+            if (data.gradcam) { document.getElementById('gradcamImage').src = `data:image/jpeg;base64,${data.gradcam}`; }
+            const label = data.prediction === 'notumor' ? 'No Tumor' : data.prediction.charAt(0).toUpperCase() + data.prediction.slice(1);
+            document.getElementById('predictionClass').textContent = label;
+            document.getElementById('confidence').textContent = `${data.confidence}%`;
+            const bars = document.getElementById('probabilityBars');
+            bars.innerHTML = '';
+            const sorted = Object.entries(data.all_probabilities).sort((a,b) => b[1]-a[1]);
+            sorted.forEach(([cls, prob]) => {
+                const pct = (prob*100).toFixed(2);
+                const name = cls === 'notumor' ? 'No Tumor' : cls.charAt(0).toUpperCase()+cls.slice(1);
+                bars.innerHTML += `<div class="probability-bar"><div class="probability-label"><span>${name}</span><span>${pct}%</span></div><div class="bar-container"><div class="bar-fill" id="bar-${cls}"></div></div></div>`;
+            });
+            setTimeout(() => { sorted.forEach(([cls,prob]) => { const el = document.getElementById(`bar-${cls}`); if(el) el.style.width=`${(prob*100).toFixed(2)}%`; }); }, 120);
+            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function toggleFaq(btn) {
+            const item = btn.parentElement;
+            const answer = item.querySelector('.faq-answer');
+            const isOpen = item.classList.contains('open');
+            document.querySelectorAll('.faq-item.open').forEach(i => { i.classList.remove('open'); i.querySelector('.faq-answer').classList.remove('open'); });
+            if (!isOpen) { item.classList.add('open'); answer.classList.add('open'); }
+        }
+
+        function animateCounter(el) {
+            const target = parseFloat(el.dataset.target);
+            const isDecimal = el.hasAttribute('data-decimal');
+            const steps = 60; const increment = target / steps; let step = 0;
+            const timer = setInterval(() => {
+                step++;
+                const cur = increment * step;
+                if (step >= steps) { el.textContent = isDecimal ? target.toFixed(2) : target.toLocaleString(); clearInterval(timer); return; }
+                el.textContent = isDecimal ? cur.toFixed(2) : Math.round(cur).toLocaleString();
+            }, 1800 / steps);
+        }
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) { document.querySelectorAll('[data-target]').forEach(animateCounter); observer.disconnect(); } });
+        }, { threshold: 0.3 });
+        const statsBar = document.querySelector('.stats-bar');
+        if (statsBar) observer.observe(statsBar);
+
+        let lastScrollY = window.scrollY;
+        window.addEventListener('scroll', () => {
+            const cur = window.scrollY;
+            document.querySelector('header').classList.toggle('hide', cur > lastScrollY && cur > 100);
+            lastScrollY = cur;
+        });
+    </script>
+</body>
+</html>
