@@ -1,16 +1,13 @@
 """
-app/app.py
-───────────
-Interactive Gradio demo app.
-Upload a brain MRI scan → get prediction + Grad-CAM heatmap.
-
-Run: python app/app.py
+Brain Tumor Classifier - Gradio App
 """
-
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path
+
+BASE_DIR = Path(__file__).parent
+sys.path.insert(0, str(BASE_DIR))
+
 import numpy as np
 import torch
 import gradio as gr
@@ -22,14 +19,10 @@ from src.data.dataset import get_transforms
 from src.explainability.gradcam import GradCAMVisualizer
 from pytorch_grad_cam.utils.image import show_cam_on_image
 
-
 # ── Load config & model ───────────────────────────────────────
 
-BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "configs" / "config.yaml"
 CHECKPOINT_PATH = BASE_DIR / "outputs" / "checkpoints" / "model_best.pth"
-#CONFIG_PATH = "configs/config.yaml"
-#CHECKPOINT_PATH = "outputs/checkpoints/model_best.pth"
 
 with open(CONFIG_PATH) as f:
     config = yaml.safe_load(f)
@@ -38,7 +31,6 @@ CLASS_NAMES = config["data"]["classes"]
 IMAGE_SIZE = config["data"]["image_size"]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load model
 model = TumorClassifier(
     backbone=config["model"]["backbone"],
     num_classes=config["model"]["num_classes"],
@@ -50,10 +42,8 @@ model.load_state_dict(ckpt["model_state_dict"])
 model = model.to(device)
 model.eval()
 
-# Transforms (val/test — no augmentation)
 transform = get_transforms("val", IMAGE_SIZE)
 
-# Grad-CAM
 explainer = GradCAMVisualizer(
     model=model,
     class_names=CLASS_NAMES,
@@ -61,25 +51,19 @@ explainer = GradCAMVisualizer(
     method=config["explainability"]["method"],
 )
 
-
 # ── Inference function ────────────────────────────────────────
 
 def predict(image: np.ndarray):
-    """Takes an HxWx3 RGB image array, returns prediction + Grad-CAM overlay."""
     if image is None:
         return None, "Please upload an image."
 
-    # Preprocess
     augmented = transform(image=image)
     tensor = augmented["image"]
-
     result = explainer.explain_single_tensor(tensor)
 
-    # Build probability bar chart data
     probs = result["all_probs"]
     prob_output = {cls: round(prob * 100, 2) for cls, prob in probs.items()}
 
-    # Generate overlay image
     mean = np.array([0.485, 0.456, 0.406])
     std = np.array([0.229, 0.224, 0.225])
     img_np = tensor.numpy().transpose(1, 2, 0)
@@ -93,7 +77,6 @@ def predict(image: np.ndarray):
     )
 
     return overlay, label, prob_output
-
 
 # ── Gradio UI ─────────────────────────────────────────────────
 
@@ -121,11 +104,6 @@ with gr.Blocks(title="AI Tumor Classifier", theme=gr.themes.Soft()) as demo:
         outputs=[cam_output, label_output, prob_output],
     )
 
-    gr.Examples(
-        examples=[],  # Add example image paths here after downloading data
-        inputs=image_input,
-    )
-
     gr.Markdown("""
     ---
     **Classes:** Glioma | Meningioma | Pituitary Tumor | No Tumor
@@ -133,7 +111,6 @@ with gr.Blocks(title="AI Tumor Classifier", theme=gr.themes.Soft()) as demo:
     **Model:** EfficientNetB3 fine-tuned on Brain Tumor MRI Dataset  
     **Explainability:** Grad-CAM++ highlights regions influencing the prediction
     """)
-
 
 if __name__ == "__main__":
     demo.launch(share=False, server_port=7860)
