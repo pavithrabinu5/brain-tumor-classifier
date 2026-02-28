@@ -6,8 +6,9 @@ Upload a brain MRI scan → get prediction + Grad-CAM heatmap.
 
 Run: python app/app.py
 """
-
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path
 import numpy as np
 import torch
@@ -25,8 +26,11 @@ from pytorch_grad_cam.utils.image import show_cam_on_image
 
 # ── Load config & model ───────────────────────────────────────
 
-CONFIG_PATH = "configs/config.yaml"
-CHECKPOINT_PATH = "outputs/checkpoints/model_best.pth"
+BASE_DIR = Path(__file__).parent.parent  # points to tumor_classifier/
+CONFIG_PATH = BASE_DIR / "configs" / "config.yaml"
+CHECKPOINT_PATH = BASE_DIR / "outputs" / "checkpoints" / "model_best.pth"
+#CONFIG_PATH = "configs/config.yaml"
+#CHECKPOINT_PATH = "outputs/checkpoints/model_best.pth"
 
 with open(CONFIG_PATH) as f:
     config = yaml.safe_load(f)
