@@ -21,8 +21,8 @@ wandb>=0.15.0             # Weights & Biases
 # mlflow>=2.5.0           # Alternative: MLflow
 
 # App / Deployment
-gradio>=3.40.0
-streamlit>=1.25.0
+gradio>=4.44.0
+#streamlit>=1.25.0
 
 # Utilities
 tqdm>=4.65.0
