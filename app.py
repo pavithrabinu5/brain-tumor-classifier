@@ -6,6 +6,7 @@ Upload a brain MRI scan → get prediction + Grad-CAM heatmap.
 
 Run: python app/app.py
 """
+
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -15,8 +16,6 @@ import torch
 import gradio as gr
 import yaml
 from PIL import Image
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.models.classifier import TumorClassifier
 from src.data.dataset import get_transforms
